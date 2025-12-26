@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -56,22 +57,26 @@ def formatar_preco(valor: float) -> str:
 
 
 def main() -> None:
-    limpar_terminal()
-    horario = datetime.now(timezone.utc).astimezone()
-    precos = buscar_precos()
+    try:
+        while True:
+            limpar_terminal()
+            horario = datetime.now(timezone.utc).astimezone()
+            precos = buscar_precos()
 
-    print("🚀 Monitor de Criptomoedas")
-    print("-" * 30)
-    print(f"⏰ Atualizado em: {horario:%d/%m/%Y %H:%M:%S %Z}")
-    print()
-    print("Moeda  | Preço (USD)")
-    print("--------------------")
-    print(f"BTC    | {formatar_preco(precos['BTC'])}")
-    print(f"ETH    | {formatar_preco(precos['ETH'])}")
+            print("🚀 Monitor de Criptomoedas")
+            print("-" * 30)
+            print(f"⏰ Atualizado em: {horario:%d/%m/%Y %H:%M:%S %Z}")
+            print()
+            print("Moeda  | Preço (USD)")
+            print("--------------------")
+            print(f"BTC    | {formatar_preco(precos['BTC'])}")
+            print(f"ETH    | {formatar_preco(precos['ETH'])}")
+
+            time.sleep(15)
+    except KeyboardInterrupt:
+        print("\n👋 Monitor interrompido pelo usuário. Até a próxima!")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit(0)
+    main()
