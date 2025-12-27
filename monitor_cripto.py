@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Iterable
 from urllib.error import URLError
 from urllib.request import Request, urlopen
+import webbrowser
 
 
 COINGECKO_URL = (
@@ -146,6 +147,62 @@ def imprimir_historico(historico: Iterable[tuple[datetime, str, float]]) -> None
     print()
 
 
+def _backend_e_interativo(matplotlib, backend: str) -> bool:
+    """Indica se o backend informado suporta exibição interativa."""
+
+    backend_normalizado = (backend or "").lower()
+    if not backend_normalizado:
+        return False
+
+    try:
+        from matplotlib.backends import BackendFilter, backend_registry
+
+        nao_interativos = {
+            nome.lower() for nome in backend_registry.list_builtin(BackendFilter.NON_INTERACTIVE)
+        }
+    except Exception:  # pragma: no cover - ambiente sem backend_registry
+        nao_interativos = set()
+
+    if backend_normalizado in nao_interativos:
+        return False
+    if backend_normalizado.endswith("agg") or "inline" in backend_normalizado:
+        return False
+    return True
+
+
+def _tentar_ativar_backend_interativo(plt, backend_atual: str) -> str | None:
+    """Tenta alternar para um backend interativo disponível."""
+
+    try:
+        from matplotlib.backends import BackendFilter, backend_registry
+    except Exception:  # pragma: no cover - ambiente sem backend_registry
+        return None
+
+    backends_interativos = backend_registry.list_builtin(BackendFilter.INTERACTIVE)
+    for candidato in backends_interativos:
+        if candidato.lower() == backend_atual.lower():
+            continue
+        try:
+            plt.switch_backend(candidato)
+            return candidato
+        except Exception:
+            continue
+    return None
+
+
+def _tentar_abrir_imagem(caminho_arquivo: str) -> None:
+    """Abre o arquivo gerado no visualizador padrão, se possível."""
+
+    try:
+        aberto = webbrowser.open(f"file://{caminho_arquivo}")
+    except Exception:
+        aberto = False
+    if aberto:
+        print("Abrindo gráfico no visualizador padrão...")
+    else:
+        print("Abra o arquivo manualmente no caminho indicado acima.")
+
+
 def exibir_grafico(historico: Iterable[tuple[datetime, str, float]]) -> None:
     """Gera um gráfico de linhas comparando BTC e ETH."""
 
@@ -157,7 +214,12 @@ def exibir_grafico(historico: Iterable[tuple[datetime, str, float]]) -> None:
         return
 
     backend = plt.get_backend() or ""
-    backend_nao_interativo = backend in matplotlib.rcsetup.non_interactive_bk or backend.lower().endswith("agg")
+    backend_interativo = _backend_e_interativo(matplotlib, backend)
+    if not backend_interativo:
+        backend_alternativo = _tentar_ativar_backend_interativo(plt, backend)
+        if backend_alternativo:
+            backend = backend_alternativo
+            backend_interativo = True
 
     pontos = {"BTC": [], "ETH": []}
     for horario, moeda, preco in historico:
@@ -181,13 +243,15 @@ def exibir_grafico(historico: Iterable[tuple[datetime, str, float]]) -> None:
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.tight_layout()
 
-    if backend_nao_interativo:
+    if not backend_interativo:
         caminho_arquivo = os.path.abspath("grafico_cotacoes.png")
         plt.savefig(caminho_arquivo)
         print(f"Backend '{backend}' não é interativo; gráfico salvo em: {caminho_arquivo}")
         print("Dica: configure um backend interativo disponível (ex.: MPLBACKEND=TkAgg) ou instale suporte a GUI.")
-    else:
-        plt.show()
+        _tentar_abrir_imagem(caminho_arquivo)
+        return
+
+    plt.show()
 
 
 def main() -> None:
