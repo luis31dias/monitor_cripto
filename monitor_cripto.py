@@ -186,6 +186,22 @@ def exibir_grafico(historico: Iterable[tuple[datetime, str, float]]) -> None:
         plt.savefig(caminho_arquivo)
         print(f"Backend '{backend}' não é interativo; gráfico salvo em: {caminho_arquivo}")
         print("Dica: configure um backend interativo disponível (ex.: MPLBACKEND=TkAgg) ou instale suporte a GUI.")
+        plt.close()
+
+        import matplotlib.image as mpimg
+
+        try:
+            imagem = mpimg.imread(caminho_arquivo)
+        except OSError as exc:  # pragma: no cover - leitura opcional
+            print(f"Não foi possível carregar o arquivo salvo para visualização: {exc}")
+            return
+
+        plt.figure(figsize=(10, 5))
+        plt.imshow(imagem)
+        plt.axis("off")
+        plt.title("Pré-visualização do gráfico salvo")
+        plt.tight_layout()
+        plt.show()
     else:
         plt.show()
 
