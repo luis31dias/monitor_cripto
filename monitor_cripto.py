@@ -24,6 +24,8 @@ COINGECKO_URL = (
 )
 ARQUIVO_HISTORICO = "historico_cotacoes.csv"
 
+INTERVALO_ATUALIZACAO_SEGUNDOS = 15
+
 
 def limpar_terminal() -> None:
     """Limpa o terminal em sistemas Unix e Windows."""
@@ -106,7 +108,7 @@ def exibir_menu() -> str:
     return input("\nSelecione uma opção: ").strip()
 
 
-def iniciar_monitoramento(intervalo_segundos: int = 60) -> None:
+def iniciar_monitoramento(intervalo_segundos: int = INTERVALO_ATUALIZACAO_SEGUNDOS) -> None:
     """Executa o loop de monitoramento, salvando cotações."""
 
     try:
