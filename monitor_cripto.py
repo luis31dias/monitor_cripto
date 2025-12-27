@@ -151,9 +151,13 @@ def exibir_grafico(historico: Iterable[tuple[datetime, str, float]]) -> None:
 
     try:
         import matplotlib.pyplot as plt
+        import matplotlib
     except ImportError:  # pragma: no cover - dependência opcional
         print("matplotlib não está disponível. Instale para ver o gráfico.")
         return
+
+    backend = plt.get_backend() or ""
+    backend_nao_interativo = backend in matplotlib.rcsetup.non_interactive_bk or backend.lower().endswith("agg")
 
     pontos = {"BTC": [], "ETH": []}
     for horario, moeda, preco in historico:
@@ -176,7 +180,14 @@ def exibir_grafico(historico: Iterable[tuple[datetime, str, float]]) -> None:
     plt.legend()
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.tight_layout()
-    plt.show()
+
+    if backend_nao_interativo:
+        caminho_arquivo = os.path.abspath("grafico_cotacoes.png")
+        plt.savefig(caminho_arquivo)
+        print(f"Backend '{backend}' não é interativo; gráfico salvo em: {caminho_arquivo}")
+        print("Dica: configure um backend interativo disponível (ex.: MPLBACKEND=TkAgg) ou instale suporte a GUI.")
+    else:
+        plt.show()
 
 
 def main() -> None:
@@ -197,4 +208,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
