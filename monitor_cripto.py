@@ -19,6 +19,8 @@ COINGECKO_URL = (
     "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
 )
 
+INTERVALO_ATUALIZACAO_SEGUNDOS = 15
+
 
 def limpar_terminal() -> None:
     """Limpa o terminal em sistemas Unix e Windows."""
@@ -72,7 +74,7 @@ def main() -> None:
             print(f"BTC    | {formatar_preco(precos['BTC'])}")
             print(f"ETH    | {formatar_preco(precos['ETH'])}")
 
-            time.sleep(15)
+            time.sleep(INTERVALO_ATUALIZACAO_SEGUNDOS)
     except KeyboardInterrupt:
         print("\n👋 Monitor interrompido pelo usuário. Até a próxima!")
         sys.exit(0)
