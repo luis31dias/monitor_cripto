@@ -126,8 +126,7 @@ def iniciar_monitoramento(intervalo_segundos: int = INTERVALO_ATUALIZACAO_SEGUND
             for moeda, preco in precos.items():
                 print(f"{moeda:<6}| {formatar_preco(preco)}")
                 salvar_cotacao(horario, moeda, preco)
-
-            print("\n(Salvo no histórico. Atualizando novamente em 60s...)")
+            print(f"\n(Salvo no histórico. Atualizando novamente em {INTERVALO_ATUALIZACAO_SEGUNDOS}s...)")
             time.sleep(intervalo_segundos)
     except KeyboardInterrupt:
         print("\n👋 Monitor interrompido. Voltando ao menu inicial...\n")
