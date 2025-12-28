@@ -8,97 +8,23 @@ O script oferece:
 
 from __future__ import annotations
 
-import csv
-import json
-import os
 import sys
 import time
 from datetime import datetime, timezone
 from typing import Iterable
-from urllib.error import URLError
-from urllib.request import Request, urlopen
 
-
-COINGECKO_URL = (
-    "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
+from api import buscar_precos
+from config import (
+    INTERVALO_ATUALIZACAO_SEGUNDOS,
+    formatar_preco,
+    limpar_terminal,
 )
-ARQUIVO_HISTORICO = "historico_cotacoes.csv"
-
-INTERVALO_ATUALIZACAO_SEGUNDOS = 15
-
-
-def limpar_terminal() -> None:
-    """Limpa o terminal em sistemas Unix e Windows."""
-
-    comando = "cls" if os.name == "nt" else "clear"
-    os.system(comando)
-
-
-def buscar_precos() -> dict[str, float]:
-    """Busca os preços atuais de BTC e ETH em USD.
-
-    Returns:
-        dict[str, float]: Um dicionário com as chaves "BTC" e "ETH".
-    """
-
-    request = Request(COINGECKO_URL, headers={"Accept": "application/json"})
-    try:
-        with urlopen(request, timeout=10) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except URLError as exc:  # pragma: no cover - caso de rede
-        raise SystemExit(f"Erro ao acessar a API: {exc}") from exc
-
-    try:
-        return {
-            "BTC": float(data["bitcoin"]["usd"]),
-            "ETH": float(data["ethereum"]["usd"]),
-        }
-    except (KeyError, TypeError, ValueError) as exc:  # pragma: no cover - dados inesperados
-        raise SystemExit("Resposta inesperada da API.") from exc
-
-
-def formatar_preco(valor: float) -> str:
-    """Formata um preço para exibição."""
-
-    return f"${valor:,.2f}"
-
-
-def salvar_cotacao(
-    horario: datetime, moeda: str, preco: float, arquivo: str = ARQUIVO_HISTORICO
-) -> None:
-    """Persiste uma cotação em CSV (data, moeda, preço)."""
-
-    escrever_cabecalho = not os.path.exists(arquivo)
-    with open(arquivo, "a", newline="", encoding="utf-8") as ponteiro:
-        escritor = csv.writer(ponteiro)
-        if escrever_cabecalho:
-            escritor.writerow(["data_hora", "moeda", "preco"])
-        escritor.writerow([horario.isoformat(), moeda, f"{preco:.2f}"])
-
-
-def carregar_historico(arquivo: str = ARQUIVO_HISTORICO) -> list[tuple[datetime, str, float]]:
-    """Carrega o histórico de cotações do arquivo informado."""
-
-    if not os.path.exists(arquivo):
-        return []
-
-    historico: list[tuple[datetime, str, float]] = []
-    with open(arquivo, newline="", encoding="utf-8") as ponteiro:
-        leitor = csv.DictReader(ponteiro)
-        for linha in leitor:
-            try:
-                horario = datetime.fromisoformat(linha["data_hora"])
-                moeda = linha["moeda"]
-                preco = float(linha["preco"])
-            except (TypeError, ValueError, KeyError):
-                continue
-            historico.append((horario, moeda, preco))
-    return historico
+from graphics import exibir_grafico
+from storage import carregar_historico, salvar_cotacao
 
 
 def exibir_menu() -> str:
     """Exibe as opções principais e retorna a escolha do usuário."""
-
     print("🚀 Monitor de Criptomoedas")
     print("-" * 32)
     print("[1] Iniciar Monitoramento")
@@ -110,7 +36,6 @@ def exibir_menu() -> str:
 
 def iniciar_monitoramento(intervalo_segundos: int = INTERVALO_ATUALIZACAO_SEGUNDOS) -> None:
     """Executa o loop de monitoramento, salvando cotações."""
-
     try:
         while True:
             limpar_terminal()
@@ -134,7 +59,6 @@ def iniciar_monitoramento(intervalo_segundos: int = INTERVALO_ATUALIZACAO_SEGUND
 
 def imprimir_historico(historico: Iterable[tuple[datetime, str, float]]) -> None:
     """Mostra o histórico de cotações formatado."""
-
     print("📜 Histórico de Cotações")
     print("-" * 32)
     tem_dados = False
@@ -144,66 +68,6 @@ def imprimir_historico(historico: Iterable[tuple[datetime, str, float]]) -> None
     if not tem_dados:
         print("Nenhum registro encontrado.")
     print()
-
-
-def exibir_grafico(historico: Iterable[tuple[datetime, str, float]]) -> None:
-    """Gera um gráfico de linhas comparando BTC e ETH com eixos duplos."""
-
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:  # pragma: no cover - dependência opcional
-        print("matplotlib não está disponível. Instale para ver o gráfico.")
-        return
-
-    pontos = {"BTC": [], "ETH": []}
-    for horario, moeda, preco in historico:
-        if moeda in pontos:
-            pontos[moeda].append((horario, preco))
-
-    if not pontos["BTC"] and not pontos["ETH"]:
-        print("Nenhum dados para gerar o gráfico.")
-        return
-
-    fig, ax = plt.subplots(figsize=(10, 5))
-
-    # Eixo esquerdo para BTC (azul)
-    if pontos["BTC"]:
-        tempos_btc, precos_btc = zip(*sorted(pontos["BTC"], key=lambda dado: dado[0]))
-        line_btc = ax.plot(tempos_btc, precos_btc, marker="o", color="blue", label="BTC")
-        ax.set_ylabel("BTC (USD)", color="blue")
-        ax.tick_params(axis="y", labelcolor="blue")
-
-    # Eixo direito para ETH (laranja)
-    ax2 = ax.twinx()
-    if pontos["ETH"]:
-        tempos_eth, precos_eth = zip(*sorted(pontos["ETH"], key=lambda dado: dado[0]))
-        line_eth = ax2.plot(tempos_eth, precos_eth, marker="s", color="orange", label="ETH")
-        ax2.set_ylabel("ETH (USD)", color="orange")
-        ax2.tick_params(axis="y", labelcolor="orange")
-
-    ax.set_xlabel("Tempo")
-    ax.set_title("Histórico de Preços - BTC x ETH")
-    ax.grid(True, linestyle="--", alpha=0.5)
-
-    # Combina as legendas dos dois eixos
-    lines = []
-    labels = []
-    if pontos["BTC"]:
-        lines.extend(line_btc)
-        labels.append("BTC")
-    if pontos["ETH"]:
-        lines.extend(line_eth)
-        labels.append("ETH")
-    ax.legend(lines, labels, loc="upper left")
-
-    fig.tight_layout()
-
-    caminho_arquivo = os.path.abspath("grafico_cotacoes.png")
-    fig.savefig(caminho_arquivo)
-    plt.close(fig)
-
-    print(f"\n✅ Gráfico salvo em: {caminho_arquivo}")
-    print(f"💡 Para abrir, use: xdg-open {caminho_arquivo}\n")
 
 
 def main() -> None:
