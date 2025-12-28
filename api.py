@@ -8,10 +8,19 @@ from config import COINGECKO_URL
 
 
 def buscar_precos() -> dict[str, float]:
-    """Busca os preços atuais de BTC e ETH em USD.
+    """Busca os preços atuais de BTC e ETH em USD via API CoinGecko.
+
+    Realiza uma requisição HTTP para a API CoinGecko e extrai os preços
+    atuais de Bitcoin e Ethereum em dólares americanos.
 
     Returns:
-        dict[str, float]: Um dicionário com as chaves "BTC" e "ETH".
+        dict[str, float]: Dicionário com os preços atuais onde:
+            - "BTC": preço de Bitcoin em USD
+            - "ETH": preço de Ethereum em USD
+
+    Raises:
+        SystemExit: Se houver erro de conectividade com a API ou se a resposta
+            não contiver os dados esperados.
     """
     request = Request(COINGECKO_URL, headers={"Accept": "application/json"})
     try:

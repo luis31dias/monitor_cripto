@@ -6,7 +6,29 @@ from typing import Iterable
 
 
 def exibir_grafico(historico: Iterable[tuple[datetime, str, float]]) -> None:
-    """Gera um gráfico de linhas comparando BTC e ETH com eixos duplos."""
+    """Gera e salva um gráfico de linhas comparando BTC e ETH com eixos duplos.
+
+    Cria um gráfico visual mostrando o histórico de preços de Bitcoin e Ethereum
+    em um período. Utiliza eixos Y independentes para melhor visualização das
+    escalas diferentes das moedas. O gráfico é salvo como PNG no diretório atual.
+
+    Args:
+        historico (Iterable[tuple[datetime, str, float]]): Iterável contendo
+            tuplas com:
+            - datetime: Timestamp da cotação
+            - str: Identificador da moeda ("BTC" ou "ETH")
+            - float: Preço em USD
+
+    Returns:
+        None
+
+    Note:
+        - Requer matplotlib instalado. Se não estiver disponível, apenas avisa.
+        - Se o histórico estiver vazio, exibe mensagem e retorna sem gerar erro.
+        - O arquivo é salvo como "grafico_cotacoes.png" no diretório atual.
+        - BTC é exibido em azul no eixo esquerdo.
+        - ETH é exibido em laranja no eixo direito.
+    """
     try:
         import matplotlib.pyplot as plt
     except ImportError:  # pragma: no cover - dependência opcional
