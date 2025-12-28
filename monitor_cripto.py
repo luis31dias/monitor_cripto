@@ -147,17 +147,13 @@ def imprimir_historico(historico: Iterable[tuple[datetime, str, float]]) -> None
 
 
 def exibir_grafico(historico: Iterable[tuple[datetime, str, float]]) -> None:
-    """Gera um gráfico de linhas comparando BTC e ETH."""
+    """Gera um gráfico de linhas comparando BTC e ETH com eixos duplos."""
 
     try:
         import matplotlib.pyplot as plt
-        import matplotlib
     except ImportError:  # pragma: no cover - dependência opcional
         print("matplotlib não está disponível. Instale para ver o gráfico.")
         return
-
-    backend = plt.get_backend() or ""
-    backend_nao_interativo = backend in matplotlib.rcsetup.non_interactive_bk or backend.lower().endswith("agg")
 
     pontos = {"BTC": [], "ETH": []}
     for horario, moeda, preco in historico:
@@ -165,45 +161,49 @@ def exibir_grafico(historico: Iterable[tuple[datetime, str, float]]) -> None:
             pontos[moeda].append((horario, preco))
 
     if not pontos["BTC"] and not pontos["ETH"]:
-        print("Nenhum dado para gerar o gráfico.")
+        print("Nenhum dados para gerar o gráfico.")
         return
 
-    plt.figure(figsize=(10, 5))
-    for moeda, serie in pontos.items():
-        if serie:
-            tempos, precos = zip(*sorted(serie, key=lambda dado: dado[0]))
-            plt.plot(tempos, precos, marker="o", label=moeda)
+    fig, ax = plt.subplots(figsize=(10, 5))
 
-    plt.title("Histórico de Preços - BTC x ETH")
-    plt.xlabel("Tempo")
-    plt.ylabel("Preço (USD)")
-    plt.legend()
-    plt.grid(True, linestyle="--", alpha=0.5)
-    plt.tight_layout()
+    # Eixo esquerdo para BTC (azul)
+    if pontos["BTC"]:
+        tempos_btc, precos_btc = zip(*sorted(pontos["BTC"], key=lambda dado: dado[0]))
+        line_btc = ax.plot(tempos_btc, precos_btc, marker="o", color="blue", label="BTC")
+        ax.set_ylabel("BTC (USD)", color="blue")
+        ax.tick_params(axis="y", labelcolor="blue")
 
-    if backend_nao_interativo:
-        caminho_arquivo = os.path.abspath("grafico_cotacoes.png")
-        plt.savefig(caminho_arquivo)
-        print(f"Backend '{backend}' não é interativo; gráfico salvo em: {caminho_arquivo}")
-        print("Dica: configure um backend interativo disponível (ex.: MPLBACKEND=TkAgg) ou instale suporte a GUI.")
-        plt.close()
+    # Eixo direito para ETH (laranja)
+    ax2 = ax.twinx()
+    if pontos["ETH"]:
+        tempos_eth, precos_eth = zip(*sorted(pontos["ETH"], key=lambda dado: dado[0]))
+        line_eth = ax2.plot(tempos_eth, precos_eth, marker="s", color="orange", label="ETH")
+        ax2.set_ylabel("ETH (USD)", color="orange")
+        ax2.tick_params(axis="y", labelcolor="orange")
 
-        import matplotlib.image as mpimg
+    ax.set_xlabel("Tempo")
+    ax.set_title("Histórico de Preços - BTC x ETH")
+    ax.grid(True, linestyle="--", alpha=0.5)
 
-        try:
-            imagem = mpimg.imread(caminho_arquivo)
-        except OSError as exc:  # pragma: no cover - leitura opcional
-            print(f"Não foi possível carregar o arquivo salvo para visualização: {exc}")
-            return
+    # Combina as legendas dos dois eixos
+    lines = []
+    labels = []
+    if pontos["BTC"]:
+        lines.extend(line_btc)
+        labels.append("BTC")
+    if pontos["ETH"]:
+        lines.extend(line_eth)
+        labels.append("ETH")
+    ax.legend(lines, labels, loc="upper left")
 
-        plt.figure(figsize=(10, 5))
-        plt.imshow(imagem)
-        plt.axis("off")
-        plt.title("Pré-visualização do gráfico salvo")
-        plt.tight_layout()
-        plt.show()
-    else:
-        plt.show()
+    fig.tight_layout()
+
+    caminho_arquivo = os.path.abspath("grafico_cotacoes.png")
+    fig.savefig(caminho_arquivo)
+    plt.close(fig)
+
+    print(f"\n✅ Gráfico salvo em: {caminho_arquivo}")
+    print(f"💡 Para abrir, use: xdg-open {caminho_arquivo}\n")
 
 
 def main() -> None:
